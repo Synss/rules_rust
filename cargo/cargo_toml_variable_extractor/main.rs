@@ -233,9 +233,6 @@ fn print_inheritable_path(
                 .join(std::path::MAIN_SEPARATOR_STR);
             Some(joined)
         }
-        (Some(InheritableString::Inherit(_)), None) => {
-            panic!("Can't inherit a {key} which was missing from the workspace")
-        }
         _ => None,
     };
     print_optional_env_str(out, key, maybe_path.as_deref());
