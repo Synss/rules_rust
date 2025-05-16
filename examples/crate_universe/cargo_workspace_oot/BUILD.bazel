@@ -1,0 +1,5 @@
+exports_files(
+    ["workspace/.cargo/config.toml"],
+    visibility = ["//visibility:public"],
+)
+

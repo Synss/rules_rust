@@ -358,11 +358,11 @@ use_repo(
 crate_index_cargo_workspace_oot = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
 crate_index_cargo_workspace_oot.from_cargo(
     name = "crate_index_cargo_workspace_oot",
-    cargo_config = "//cargo_workspace_oot/workspace:.cargo/config.toml",
-    cargo_lockfile = "//cargo_workspace_oot/workspace:Cargo.Bazel.lock",
-    lockfile = "//cargo_workspace_oot/workspace:cargo-bazel-lock.json",
+    cargo_config = "//cargo_workspace_oot:workspace/.cargo/config.toml",
+    cargo_lockfile = "//cargo_workspace_oot:workspace/Cargo.Bazel.lock",
+    lockfile = "//cargo_workspace_oot:workspace/cargo-bazel-lock.json",
     manifests = [
-        "//cargo_workspace_oot/workspace:Cargo.toml",
+        "//cargo_workspace_oot:workspace/Cargo.toml",
         "//cargo_workspace_oot/num_printer:Cargo.toml",
         "//cargo_workspace_oot/printer:Cargo.toml",
         "//cargo_workspace_oot/rng:Cargo.toml",
