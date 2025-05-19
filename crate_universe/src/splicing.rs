@@ -208,8 +208,9 @@ impl WorkspaceMetadata {
     fn new(
         splicing_manifest: &SplicingManifest,
         member_manifests: BTreeMap<&Utf8PathBuf, String>,
+        workspace_prefix: Option<String>,
     ) -> Result<Self> {
-        let mut package_prefixes: BTreeMap<String, String> = member_manifests
+        let package_prefixes: BTreeMap<String, String> = member_manifests
             .iter()
             .filter_map(|(original_manifest, cargo_package_name)| {
                 let label = match splicing_manifest.manifests.get(*original_manifest) {
@@ -227,12 +228,6 @@ impl WorkspaceMetadata {
                 Some((cargo_package_name.clone(), prefix))
             })
             .collect();
-
-        // It is invald for toml maps to use empty strings as keys. In the case
-        // the empty key is expected to be the root package. If the root package
-        // has a prefix, then all other packages will as well (even if no other
-        // manifest represents them). The value is then saved as a separate value
-        let workspace_prefix = package_prefixes.remove("");
 
         let package_prefixes = package_prefixes
             .into_iter()
