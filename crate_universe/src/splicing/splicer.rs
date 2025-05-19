@@ -1,6 +1,6 @@
 //! Utility for creating valid Cargo workspaces
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
 
@@ -122,7 +122,7 @@ impl<'a> SplicerKind<'a> {
                 path,
                 manifest,
                 splicing_manifest,
-            } => Self::splice_workspace(workspace_dir, path, manifest, splicing_manifest),
+            } => self.splice_workspace(workspace_dir, path, manifest, splicing_manifest),
             SplicerKind::Package {
                 path,
                 manifest,
@@ -138,6 +138,7 @@ impl<'a> SplicerKind<'a> {
     /// Implementation for splicing Cargo workspaces
     #[tracing::instrument(skip_all)]
     fn splice_workspace(
+        &self,
         workspace_dir: &Utf8Path,
         path: &&Utf8PathBuf,
         manifest: &&Manifest,
@@ -149,11 +150,19 @@ impl<'a> SplicerKind<'a> {
             .expect("Every manifest should havee a parent directory");
 
         // Link the sources of the root manifest into the new workspace
-        symlink_roots(
-            manifest_dir.as_std_path(),
-            workspace_dir.as_std_path(),
-            Some(IGNORE_LIST),
-        )?;
+        let mut workspace_dir = (*workspace_dir).to_owned();
+        let rel_dirs = self.rel_dirs_from_root();
+        for (root, member_rel_dir) in rel_dirs.iter() {
+            // All members relative to the root workspace.
+            workspace_dir.push(root);
+            for member in member_rel_dir {
+                symlink_roots(
+                    &manifest_dir.as_std_path().join(member),
+                    &workspace_dir.as_std_path().join(member),
+                    Some(IGNORE_LIST),
+                )?;
+            }
+        }
 
         // Optionally install the cargo config after contents have been symlinked
         Self::setup_cargo_config(&splicing_manifest.cargo_config, workspace_dir.as_std_path())?;
@@ -265,6 +274,55 @@ impl<'a> SplicerKind<'a> {
         write_root_manifest(root_manifest_path.as_std_path(), manifest)?;
 
         Ok(SplicedManifest::MultiPackage(root_manifest_path))
+    }
+
+    /// A helper to find the relative directories of the members from the root workspace.
+    fn rel_dirs_from_root(&self) -> BTreeMap<Utf8PathBuf, BTreeSet<Utf8PathBuf>> {
+        let mut namespaces: BTreeMap<Utf8PathBuf, BTreeSet<Utf8PathBuf>> = BTreeMap::new();
+        match self {
+            SplicerKind::Workspace {
+                path,
+                manifest,
+                splicing_manifest,
+            } => {
+                if let Some(root_label) = splicing_manifest.manifests.get(*path) {
+                    let mut root_namespace = Utf8PathBuf::new();
+                    root_namespace.push(root_label.package().unwrap_or("."));
+                    root_namespace.push(root_label.target());
+                    let root_namespace = root_namespace.parent().unwrap();
+                    namespaces.insert(
+                        root_namespace.to_path_buf(),
+                        manifest
+                            .workspace
+                            .as_ref()
+                            .unwrap()
+                            .members
+                            .iter()
+                            .map(|m| m.into())
+                            .collect(),
+                    );
+                    namespaces
+                        .get_mut(root_namespace)
+                        .unwrap()
+                        .insert(Utf8PathBuf::new());
+                    return namespaces;
+                }
+                // Null object as default.
+                namespaces.insert(
+                    Utf8PathBuf::new(),
+                    BTreeSet::from_iter([Utf8PathBuf::new()]),
+                );
+                namespaces
+            }
+            _ => {
+                let mut namespaces: BTreeMap<Utf8PathBuf, BTreeSet<Utf8PathBuf>> = BTreeMap::new();
+                namespaces.insert(
+                    Utf8PathBuf::new(),
+                    BTreeSet::from_iter([Utf8PathBuf::new()]),
+                );
+                namespaces
+            }
+        }
     }
 
     /// A helper for installing Cargo config files into the spliced workspace while also
@@ -622,6 +680,9 @@ pub(crate) fn symlink_roots(
 
         let link_src = source.join(&basename);
         let link_dest = dest.join(&basename);
+        if link_dest.exists() {
+            continue;
+        }
         symlink(&link_src, &link_dest).context(format!(
             "Failed to create symlink: {} -> {}",
             link_src.display(),
