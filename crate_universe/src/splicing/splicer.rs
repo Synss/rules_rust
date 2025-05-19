@@ -48,6 +48,7 @@ impl<'a> SplicerKind<'a> {
         manifests: &'a BTreeMap<Utf8PathBuf, Manifest>,
         splicing_manifest: &'a SplicingManifest,
     ) -> Result<Self> {
+        // XXX CALLER HERE XXX
         let workspaces = discover_workspaces(manifests.keys().cloned().collect(), manifests)?;
         let workspace_roots = workspaces.workspaces();
         if workspace_roots.len() > 1 {
@@ -88,18 +89,31 @@ impl<'a> SplicerKind<'a> {
                 },
             )
         }
+        println!("XXX IN");
 
         if let Some((path, manifest)) = workspace_roots
             .iter()
             .next()
             .and_then(|path| manifests.get_key_value(path))
         {
+            println!(
+                "XXX 1a -- \n\t{:?}\n\t{:?}\n\t{:?}",
+                workspace_roots,
+                path,
+                manifest,
+            );
+            // splicing_manifest -> from BUILD file
+            //println!(
+            //    "XXX 1b -- {:?}",
+            //    splicing_manifest,
+            //);
             Ok(Self::Workspace {
                 path,
                 manifest,
                 splicing_manifest,
             })
         } else if manifests.len() == 1 {
+            println!("XXX 2");
             let (path, manifest) = manifests.iter().last().unwrap();
             Ok(Self::Package {
                 path,
@@ -107,6 +121,7 @@ impl<'a> SplicerKind<'a> {
                 splicing_manifest,
             })
         } else {
+            println!("XXX 3");
             Ok(Self::MultiPackage {
                 manifests,
                 splicing_manifest,
@@ -143,15 +158,24 @@ impl<'a> SplicerKind<'a> {
         manifest: &&Manifest,
         splicing_manifest: &&SplicingManifest,
     ) -> Result<SplicedManifest> {
+        // XXX HERE MOST LIKELY PLACE TO BE FIXED XXX
+        println!(
+            "XXX SplicerKind::splice_workspace\n\t{:?}\n\t{:?}\n\t{:?}\n\t{:?}",
+            workspace_dir,
+            path,
+            manifest,
+            splicing_manifest,
+        );
         let mut manifest = (*manifest).clone();
         let manifest_dir = path
             .parent()
             .expect("Every manifest should have a parent directory");
 
         // Link the sources of the root manifest into the new workspace
+        println!("XXX symlink_roots vvv");
         symlink_roots(
-            manifest_dir.as_std_path(),
-            workspace_dir.as_std_path(),
+            manifest_dir.as_std_path(),  // source
+            workspace_dir.as_std_path(),  // dest
             Some(IGNORE_LIST),
         )?;
 
@@ -498,6 +522,7 @@ impl Splicer {
 
     /// Build a new workspace root
     pub(crate) fn splice_workspace(&self) -> Result<SplicedManifest> {
+        println!("XXX splice_ws IN");
         SplicerKind::new(&self.manifests, &self.splicing_manifest)?.splice(&self.workspace_dir)
     }
 }
@@ -622,6 +647,7 @@ pub(crate) fn symlink_roots(
 
         let link_src = source.join(&basename);
         let link_dest = dest.join(&basename);
+        println!("XXX symlink_roots {:?} -> {:?}", link_src, link_dest);
         symlink(&link_src, &link_dest).context(format!(
             "Failed to create symlink: {} -> {}",
             link_src.display(),

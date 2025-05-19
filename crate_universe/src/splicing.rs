@@ -126,7 +126,7 @@ impl TryFrom<SplicingManifest> for SplicingMetadata {
                 // workspace manifest is also included in the hash.
                 // See https://github.com/bazelbuild/rules_rust/issues/2016
                 let manifest_content = fs::read(&path)
-                    .with_context(|| format!("Failed to load manifest '{}'", path))?;
+                    .with_context(|| format!("Failed to load manifest x '{}'", path))?;
                 let manifest = cargo_toml::Manifest::from_slice(&manifest_content)
                     .with_context(|| format!("Failed to parse manifest '{}'", path))?;
                 Ok((label, manifest))
@@ -465,18 +465,36 @@ pub(crate) fn generate_lockfile(
     cargo_bin: Cargo,
     update_request: &Option<CargoUpdateRequest>,
 ) -> Result<cargo_lock::Lockfile> {
+    println!("XXX splicing::gl ENTER");
+    println!(
+        // first arg `/tmp/.tmp.../Cargo.toml`
+        "XXX {:?} {:?} {:?} {:?}",
+        manifest_path,
+        existing_lock,
+        cargo_bin,
+        update_request,
+    );
     let manifest_dir = manifest_path
         .as_path_buf()
         .parent()
         .expect("Every manifest should be contained in a parent directory");
 
+    println!("XXX splicing::gl 1");
     let root_lockfile_path = manifest_dir.join("Cargo.lock");
 
+    println!("XXX splicing::gl 2");
     // Remove the file so it's not overwitten if it happens to be a symlink.
     if root_lockfile_path.exists() {
         fs::remove_file(&root_lockfile_path)?;
     }
 
+    println!("XXX splicing::gl 3");
+    println!(
+        "XXX {:?} {:?} {:?}",
+        cargo_bin,
+        existing_lock,
+        update_request,
+    );
     // Generate the new lockfile
     let lockfile = LockGenerator::new(cargo_bin).generate(
         manifest_path.as_path_buf(),
@@ -484,11 +502,13 @@ pub(crate) fn generate_lockfile(
         update_request,
     )?;
 
+    println!("XXX splicing::gl 4");
     // Write the lockfile to disk
     if !root_lockfile_path.exists() {
         bail!("Failed to generate Cargo.lock file")
     }
 
+    println!("XXX splicing::gl EXIT");
     Ok(lockfile)
 }
 
