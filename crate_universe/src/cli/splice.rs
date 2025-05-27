@@ -62,11 +62,8 @@ pub struct SpliceOptions {
 /// Combine a set of disjoint manifests into a single workspace.
 pub fn splice(opt: SpliceOptions) -> Result<()> {
     // Load the all config files required for splicing a workspace
-    println!("XXX splice::splice ENTER");
-    println!("XXX SliceOptions {:?}", opt);
     let splicing_manifest = SplicingManifest::try_from_path(&opt.splicing_manifest)
         .context("Failed to parse splicing manifest")?;
-    println!("XXX splicing_manifest {:?}", splicing_manifest);
 
     // Determine the splicing workspace
     let temp_dir;
@@ -81,18 +78,14 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
 
     // Generate a splicer for creating a Cargo workspace manifest
     let splicer = Splicer::new(splicing_dir, splicing_manifest)?;
-    println!("XXX splice::splice 0");
 
     let cargo = Cargo::new(opt.cargo, opt.rustc.clone());
 
     // Splice together the manifest
-    println!("XXX splice::splice 1");
     let manifest_path = splicer
         .splice_workspace()
         .context("Failed to splice workspace")?;
-    println!("XXX splice:splice1\n\t{:?}", manifest_path);
 
-    println!("XXX splice::splice 2");
     // Generate a lockfile
     let cargo_lockfile = generate_lockfile(
         &manifest_path,
@@ -102,17 +95,14 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
     )
     .context("Failed to generate lockfile")?;
 
-    println!("XXX splice::splice 3");
     let config = Config::try_from_path(&opt.config).context("Failed to parse config")?;
 
-    println!("XXX splice::splice 4");
     let resolver_data = TreeResolver::new(cargo.clone())
         .generate(
             manifest_path.as_path_buf(),
             &config.supported_platform_triples,
         )
         .context("Failed to generate features")?;
-    println!("XXX splice::splice 5");
     // Write the registry url info to the manifest now that a lockfile has been generated
     WorkspaceMetadata::write_registry_urls_and_feature_map(
         &cargo,
@@ -123,10 +113,8 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
     )
     .context("Failed to write registry URLs and feature map")?;
 
-    println!("XXX splice::splice 6");
     let output_dir = opt.output_dir.clone();
 
-    println!("XXX splice::splice 7");
     // Write metadata to the workspace for future reuse
     let (cargo_metadata, _) = Generator::new()
         .with_cargo(cargo)
@@ -134,7 +122,6 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
         .generate(manifest_path.as_path_buf())
         .context("Failed to generate cargo metadata")?;
 
-    println!("XXX splice::splice 8");
     let cargo_lockfile_path = manifest_path
         .as_path_buf()
         .parent()
@@ -146,19 +133,15 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
         })?
         .join("Cargo.lock");
 
-    println!("XXX splice::splice 9");
     // Generate the consumable outputs of the splicing process
     std::fs::create_dir_all(&output_dir)
         .with_context(|| format!("Failed to create directories for {}", &output_dir.display()))?;
 
-    println!("XXX splice::splice 10");
     write_metadata(&opt.output_dir.join("metadata.json"), &cargo_metadata)
         .context("Failed to write metadata")?;
 
-    println!("XXX splice::splice 11");
     std::fs::copy(cargo_lockfile_path, output_dir.join("Cargo.lock"))
         .context("Failed to copy lockfile")?;
 
-    println!("XXX splice::splice EXIT");
     Ok(())
 }

@@ -54,7 +54,6 @@ fn discover_workspaces_with_cache(
                 .insert(workspace_parent, BTreeSet::new());
         }
     }
-    println!("XXX - 1st pass {:?}", discovered_workspaces);
 
     // Second pass: Find all child manifests.
     for workspace_path in discovered_workspaces
@@ -87,15 +86,6 @@ fn discover_workspaces_with_cache(
             .as_ref()
             .and_then(|workspace| {
                 for member in workspace.members.iter() {
-                    println!(
-                        "XXX - M / WS - {:?} {:?}",
-                        // "PATH/cargo_workspace_oop/workspace/Cargo.toml"
-                        // "../num_printer"
-                        // FIXME: members now appear in both "workspaces_to_members"
-                        //        and "non_workspaces"
-                        workspace_path,
-                        member,
-                    );
                     let member_pattern = workspace_path.parent()?.to_string() + "/" + member;
                     for entry in glob::glob(&member_pattern).unwrap() {
                         let maybe_member_cargo_toml = Utf8Path::from_path(&entry.unwrap())
@@ -112,7 +102,6 @@ fn discover_workspaces_with_cache(
                 }
                 Some(())
             });
-        println!("XXX - DW {:?}", discovered_workspaces);
 
         'per_child: for entry in walkdir::WalkDir::new(workspace_path.parent().unwrap())
             .follow_links(false)
@@ -230,7 +219,6 @@ fn discover_workspaces_with_cache(
             discovered_workspaces.non_workspaces.insert(cargo_toml_path);
         }
     }
-    println!("XXX - final DW {:?}", discovered_workspaces);
 
     Ok(discovered_workspaces)
 }
