@@ -463,6 +463,7 @@ impl TreeResolver {
             let file_name = source_path.file_name().unwrap();
             if file_name != "Cargo.toml" && file_name != "Cargo.lock" {
                 let destination = output_dir.join(file_name);
+                println!("XXX symlink2 {:?} -> {:?}", source_path, destination);
                 symlink(&source_path, &destination).with_context(|| {
                     format!(
                         "Failed to create symlink {:?} pointing at {:?}",
