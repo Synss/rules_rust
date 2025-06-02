@@ -147,6 +147,18 @@ impl CargoUpdateRequest {
     /// Calls `cargo update` with arguments specific to the state of the current variant.
     pub(crate) fn update(&self, manifest: &Path, cargo_bin: &Cargo) -> Result<()> {
         let manifest_dir = manifest.parent().unwrap();
+        println!("XXX WS UPD {:?}", manifest);
+        println!("XXX WS ARGS {:?}", self.get_update_args());
+
+        //let mut entries = fs::read_dir(manifest_dir.parent().unwrap())?
+        //    .map(|res| res.map(|e| e.path()))
+        //    .collect::<Result<Vec<_>, std::io::Error>>()?;
+        //entries.sort();
+        //println!("XXX vvv");
+        //for elem in entries {
+        //    println!("\t{:?}", elem);
+        //}
+        //println!("XXX ^^^");
 
         // Simply invoke `cargo update`
         let output = cargo_bin
@@ -166,10 +178,14 @@ impl CargoUpdateRequest {
                     manifest.display()
                 )
             })?;
+        println!("XXX WS UPD O {:?}", output);
 
         if !output.status.success() {
             eprintln!("{}", String::from_utf8_lossy(&output.stdout));
             eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+            println!("XXX WS UPD FAILED vvv");
+            std::thread::sleep(std::time::Duration::from_secs(60));
+            println!("XXX WS UPD FAILED ^^^");
             bail!(format!("Failed to update lockfile: {}", output.status))
         }
 
@@ -195,11 +211,14 @@ impl LockGenerator {
         update_request: &Option<CargoUpdateRequest>,
     ) -> Result<cargo_lock::Lockfile> {
         debug!("Generating Cargo Lockfile for {}", manifest_path);
+        println!("XXX GG ENTER");
+        println!("XXX GG\n\t{:?}\n\t{:?}\n\t{:?}", manifest_path, existing_lock, update_request);
 
         let manifest_dir = manifest_path.parent().unwrap();
         let generated_lockfile_path = manifest_dir.join("Cargo.lock");
 
         if let Some(lock) = existing_lock {
+            println!("XXX GG 1");
             debug!("Using existing lock {}", lock.display());
             if !lock.exists() {
                 bail!(
@@ -207,20 +226,25 @@ impl LockGenerator {
                     lock.display()
                 )
             }
+            println!("XXX GG 1 1");
 
             // Install the file into the target location
             if generated_lockfile_path.exists() {
                 fs::remove_file(&generated_lockfile_path)?;
             }
             fs::copy(lock, &generated_lockfile_path)?;
+            println!("XXX GG 1 2");
 
+            println!("XXX GG\n\t{:?}\n\t{:?}\n\t{:?}", update_request, manifest_path, self.cargo_bin);
             if let Some(request) = update_request {
                 request.update(manifest_path.as_std_path(), &self.cargo_bin)?;
             }
+            println!("XXX GG 1 3");
 
             // Ensure the Cargo cache is up to date to simulate the behavior
             // of having just generated a new one
             tracing::debug!("Fetching crates for {}", manifest_path);
+            println!("XXX GG 2");
             let output = self
                 .cargo_bin
                 .command()?
@@ -255,6 +279,7 @@ impl LockGenerator {
                 String::from_utf8_lossy(&output.stdout)
             );
         } else {
+            println!("XXX GG 3");
             debug!("Generating new lockfile");
             // Simply invoke `cargo generate-lockfile`
             let output = self
@@ -280,6 +305,7 @@ impl LockGenerator {
             }
         }
 
+        println!("XXX GG EXIT");
         cargo_lock::Lockfile::load(&generated_lockfile_path).context(format!(
             "Failed to load lockfile: {}",
             generated_lockfile_path

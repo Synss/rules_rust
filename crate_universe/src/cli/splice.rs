@@ -86,6 +86,7 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
         .splice_workspace()
         .context("Failed to splice workspace")?;
 
+    println!("XXX - generate_lockfile");
     // Generate a lockfile
     let cargo_lockfile = generate_lockfile(
         &manifest_path,

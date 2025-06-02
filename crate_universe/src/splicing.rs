@@ -465,12 +465,14 @@ pub(crate) fn generate_lockfile(
     cargo_bin: Cargo,
     update_request: &Option<CargoUpdateRequest>,
 ) -> Result<cargo_lock::Lockfile> {
+    println!("XXX gl ENTER");
     let manifest_dir = manifest_path
         .as_path_buf()
         .parent()
         .expect("Every manifest should be contained in a parent directory");
 
     let root_lockfile_path = manifest_dir.join("Cargo.lock");
+    println!("XXX gl rlfp: {:?}", root_lockfile_path);
 
     // Remove the file so it's not overwitten if it happens to be a symlink.
     if root_lockfile_path.exists() {
@@ -489,6 +491,7 @@ pub(crate) fn generate_lockfile(
         bail!("Failed to generate Cargo.lock file")
     }
 
+    println!("XXX gl EXIT");
     Ok(lockfile)
 }
 
