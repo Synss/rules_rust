@@ -14,6 +14,7 @@ use url::Url;
 
 use crate::config::CrateId;
 use crate::metadata::cargo_bin::Cargo;
+use crate::splicing::SplicingManifest;
 use crate::select::{Select, SelectableScalar};
 use crate::utils::symlink::symlink;
 use crate::utils::target_triple::TargetTriple;
@@ -307,6 +308,7 @@ impl TreeResolver {
     #[tracing::instrument(name = "TreeResolver::generate", skip_all)]
     pub(crate) fn generate(
         &self,
+        splicing_manifest: &SplicingManifest,
         pristine_manifest_path: &Utf8Path,
         target_triples: &BTreeSet<TargetTriple>,
     ) -> Result<TreeResolverMetadata> {
@@ -314,6 +316,7 @@ impl TreeResolver {
             "Generating features for manifest {}",
             pristine_manifest_path
         );
+        println!("XXX {:?}", splicing_manifest);
 
         let tempdir = tempfile::tempdir().context("Failed to make tempdir")?;
 

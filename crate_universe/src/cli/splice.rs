@@ -77,7 +77,7 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
     };
 
     // Generate a splicer for creating a Cargo workspace manifest
-    let splicer = Splicer::new(splicing_dir, splicing_manifest)?;
+    let splicer = Splicer::new(splicing_dir, splicing_manifest.clone())?;
 
     let cargo = Cargo::new(opt.cargo, opt.rustc.clone());
 
@@ -98,8 +98,10 @@ pub fn splice(opt: SpliceOptions) -> Result<()> {
 
     let config = Config::try_from_path(&opt.config).context("Failed to parse config")?;
 
+    // XXX CALLER
     let resolver_data = TreeResolver::new(cargo.clone())
         .generate(
+            &splicing_manifest,
             manifest_path.as_path_buf(),
             &config.supported_platform_triples,
         )
