@@ -173,11 +173,47 @@ impl<'a> SplicerKind<'a> {
 
         // Link the sources of the root manifest into the new workspace
         println!("XXX symlink_roots vvv");
-        symlink_roots(
-            manifest_dir.as_std_path(),  // source
-            workspace_dir.as_std_path(),  // dest
-            Some(IGNORE_LIST),
-        )?;
+        let mut workspace_dir = (*workspace_dir).to_owned();
+        if let Some(root_label) = splicing_manifest.manifests.get(*path) {
+            //println!("XXX {:?}", root_label);
+            //println!("XXX {}", root_label);
+            let mut namespace = Utf8PathBuf::new();
+            namespace.push(root_label.package().unwrap_or("."));
+            namespace.push(root_label.target());
+            let _ = namespace.pop();
+            //let ns = Utf8Path::new(
+            //        root_label.package().unwrap_or(".")
+            //    );
+            //let ns = ns.join(root_label.target());
+            //let ns = ns.parent().unwrap(); 
+
+            //let ns = match root_label {
+            //    Some(Label::Absolute{package, target, ..}) => Utf8Path::new(package).join(target).parent(),
+            //    _ => None,
+            //};
+            // PATH LOOKS GOOD,  NOW MUST ALSO SYMLINK THE
+            // EXPLICIT MEMBERS IN THE SAME FASHION
+            println!("XXX ns --- {:?}", namespace);
+            workspace_dir.push(namespace);
+            println!("XXX ws --- {:?}", workspace_dir);
+            symlink_roots(
+                manifest_dir.as_std_path(),   // source
+                workspace_dir.as_std_path(),  // dest
+                Some(IGNORE_LIST),
+            )?;
+            // HACK
+            println!("XXX --- HACK?");
+            println!("XXX --- m {:?}", &manifest_dir);
+            for member in manifest.workspace.as_ref().expect("boom").members.iter() {
+                println!("XXX --- w {:?}", &workspace_dir.as_std_path().join(member));
+                symlink_roots(
+                    &manifest_dir.as_std_path().join(member),
+                    &workspace_dir.as_std_path().join(member),
+                    Some(IGNORE_LIST),
+                )?;
+            }
+            // END OF HACK
+        };
 
         // Optionally install the cargo config after contents have been symlinked
         Self::setup_cargo_config(&splicing_manifest.cargo_config, workspace_dir.as_std_path())?;
@@ -648,11 +684,13 @@ pub(crate) fn symlink_roots(
         let link_src = source.join(&basename);
         let link_dest = dest.join(&basename);
         println!("XXX symlink_roots {:?} -> {:?}", link_src, link_dest);
-        symlink(&link_src, &link_dest).context(format!(
-            "Failed to create symlink: {} -> {}",
-            link_src.display(),
-            link_dest.display()
-        ))?;
+        if !link_dest.exists() {  // HACK -- replace in caller by checking whether in-tree or not
+            symlink(&link_src, &link_dest).context(format!(
+                    "Failed to create symlink: {} -> {}",
+                    link_src.display(),
+                    link_dest.display()
+            ))?;
+        }
     }
 
     Ok(())
