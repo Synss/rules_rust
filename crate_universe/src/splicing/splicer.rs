@@ -558,6 +558,11 @@ impl Splicer {
     pub(crate) fn splice_workspace(&self) -> Result<SplicedManifest> {
         SplicerKind::new(&self.manifests, &self.splicing_manifest)?.splice(&self.workspace_dir)
     }
+
+    /// A helper to find the relative directories of the members from the root workspace.
+    pub(crate) fn member_dirs(&self) -> BTreeMap<Utf8PathBuf, BTreeSet<Utf8PathBuf>> {
+        SplicerKind::new(&self.manifests, &self.splicing_manifest).unwrap().rel_dirs_from_root()
+    }
 }
 const DEFAULT_SPLICING_PACKAGE_NAME: &str = "direct-cargo-bazel-deps";
 const DEFAULT_SPLICING_PACKAGE_VERSION: &str = "0.0.1";
