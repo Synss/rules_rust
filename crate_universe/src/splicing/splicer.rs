@@ -163,6 +163,9 @@ impl<'a> SplicerKind<'a> {
                 )?;
             }
         }
+        let workspace_prefix = rel_dirs.first_key_value().map(
+            |(k, _)| k.to_string()
+        );
 
         // Optionally install the cargo config after contents have been symlinked
         Self::setup_cargo_config(&splicing_manifest.cargo_config, workspace_dir.as_std_path())?;
@@ -176,7 +179,7 @@ impl<'a> SplicerKind<'a> {
         let member_manifests = BTreeMap::from([(*path, String::new())]);
 
         // Write the generated metadata to the manifest
-        let workspace_metadata = WorkspaceMetadata::new(splicing_manifest, member_manifests)?;
+        let workspace_metadata = WorkspaceMetadata::new(splicing_manifest, member_manifests, workspace_prefix)?;
         workspace_metadata.inject_into(&mut manifest)?;
 
         // Write the root manifest
@@ -223,7 +226,7 @@ impl<'a> SplicerKind<'a> {
         let member_manifests = BTreeMap::from([(*path, String::new())]);
 
         // Write the generated metadata to the manifest
-        let workspace_metadata = WorkspaceMetadata::new(splicing_manifest, member_manifests)?;
+        let workspace_metadata = WorkspaceMetadata::new(splicing_manifest, member_manifests, None)?;
         workspace_metadata.inject_into(&mut manifest)?;
 
         // Write the root manifest
@@ -261,7 +264,7 @@ impl<'a> SplicerKind<'a> {
         }
 
         // Write the generated metadata to the manifest
-        let workspace_metadata = WorkspaceMetadata::new(splicing_manifest, installations)?;
+        let workspace_metadata = WorkspaceMetadata::new(splicing_manifest, installations, None)?;
         workspace_metadata.inject_into(&mut manifest)?;
 
         // Add any additional depeendencies to the root package
