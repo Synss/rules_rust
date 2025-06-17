@@ -7,6 +7,7 @@ use std::process::Child;
 
 use anyhow::{anyhow, bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
+use clean_path::Clean;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, trace};
@@ -17,6 +18,7 @@ use crate::metadata::cargo_bin::Cargo;
 use crate::select::{Select, SelectableScalar};
 use crate::utils::symlink::symlink;
 use crate::utils::target_triple::TargetTriple;
+use crate::utils::PathCleanUtf8;
 
 /// A list platform triples that support host tools
 ///
@@ -483,10 +485,13 @@ impl TreeResolver {
             }
         }
         for member_dir in members {
-            let source_path = pristine_root.join(member_dir);
-            let destination = output_dir.join(member_dir);
+            let source_path = pristine_root.join(member_dir).clean();
+            let destination = output_dir.join(member_dir).clean();
             if destination.exists() {
                 continue;
+            }
+            if let Some(parent) = destination.parent() {
+                std::fs::create_dir_all(&parent)?;
             }
             symlink(source_path.as_std_path(), &destination).with_context(|| {
                 format!(
